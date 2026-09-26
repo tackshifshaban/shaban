@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sherif Shaban ISP - Billing Pro</title>
+<style>
+  :root {
+    --primary:#2563eb; --success:#16a34a; --danger:#dc2626; --warn:#f59e0b; --bg:#f1f5f9;
+  }
+  *{box-sizing:border-box;font-family:'Segoe UI', Tahoma, sans-serif}
+  body{background:var(--bg);margin:0;padding:10px}
+.container{max-width:1300px;margin:auto;background:#fff;padding:20px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+  h1{text-align:center;color:var(--primary);margin:0;font-size:26px}
+.subtitle{text-align:center;color:#64748b;margin-bottom:20px;font-size:14px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+.stat-card{background:linear-gradient(135deg,#fff,#f8fafc);border-left:5px solid var(--primary);padding:15px;border-radius:10px}
+.stat-card h4{margin:0;color:#64748b;font-size:13px;text-transform:uppercase}
+.stat-card p{margin:8px 0 0;font-size:24px;font-weight:800;color:#0f172a}
+
+.tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:10px 18px;background:#e2e8f0;border-radius:8px;cursor:pointer;font-weight:600}
+.tab.active{background:var(--primary);color:#fff}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{border:1px solid #e2e8f0;padding:18px;border-radius:12px;background:#fff}
+.card h3{margin-top:0;color:#0f172a;border-bottom:2px solid var(--bg);padding-bottom:8px}
+
+  label{display:block;margin:10px 0 4px;font-weight:600;font-size:14px}
+  input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px}
+  button{width:100%;padding:11px;margin-top:10px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+  button:hover{opacity:0.9}
+  button.success{background:var(--success)}
+  button.danger{background:var(--danger)}
+  button.warn{background:var(--warn);color:#000}
+
+  table{width:100%;border-collapse:collapse;margin-top:15px;font-size:13px}
+  th,td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:left}
+  th{background:#eff6ff;color:#1e3a8a;font-weight:700}
+.status-active{color:var(--success);font-weight:700}
+.status-suspended{color:var(--danger);font-weight:700}
+.actions button{padding:6px 9px;font-size:12px;margin-right:5px;width:auto;display:inline-block}
+
+.receipt{border:2px dashed #334155;padding:20px;margin-top:20px;background:#fff;font-family:monospace}
+.hidden{display:none}
+.search-bar{display:flex;gap:10px;margin-bottom:15px}
+.search-bar input{flex:1}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <h1>SHERIF SHABAN ISP</h1>
+  <p class="subtitle">Complete WiFi Billing & Customer Management System</p>
+
+  <!-- DASHBOARD -->
+  <div class="stats">
+    <div class="stat-card"><h4>Total Customers</h4><p id="statTotal">0</p></div>
+    <div class="stat-card"><h4>Active</h4><p id="statActive" class="status-active">0</p></div>
+    <div class="stat-card"><h4>Suspended</h4><p id="statSuspended" class="status-suspended">0</p></div>
+    <div class="stat-card"><h4>This Month Revenue</h4><p>KES <span id="statRevenue">0</span></p></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="showTab('customers')">Customers</div>
+    <div class="tab" onclick="showTab('payments')">Payments</div>
+    <div class="tab" onclick="showTab('reports')">Reports</div>
+    <div class="tab" onclick="showTab('settings')">Settings</div>
+  </div>
+
+  <!-- TAB 1: DASHBOARD -->
+  <div id="dashboard" class="tab-content">
+    <div class="grid">
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <button onclick="showTab('customers')">+ Add New Customer</button>
+        <button class="success" onclick="showTab('payments')">Record Payment</button>
+        <button class="warn" onclick="checkDue()">Run Due Check</button>
+      </div>
+      <div class="card">
+        <h3>Due Soon - Next 7 Days</h3>
+        <table id="dueTable"><thead><tr><th>Customer</th><th>Due Date</th><th>Amount</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: CUSTOMERS -->
+  <div id="customers" class="tab-content hidden">
+    <div class="grid">
+      <div class="card">
+        <h3 id="formTitle">Add Customer</h3>
+        <input type="hidden" id="editId">
+        <label>Full Name</label><input id="name" placeholder="John Doe">
+        <label>Phone Number</label><input id="phone" placeholder="07XX XXX XXX">
+        <label>Location/Address</label><input id="address" placeholder="Estate, House No">
+        <label>Router/MAC ID</label><input id="routerId" placeholder="Optional">
+        <label>Internet Plan</label><select id="plan"></select>
+        <button onclick="saveCustomer()">Save Customer</button>
+        <button class="warn" onclick="clearForm()">Clear Form</button>
+      </div>
+      <div class="card">
+        <h3>Search & Tools</h3>
+        <div class="search-bar"><input id="search" placeholder="Search name, phone, ID..." onkeyup="renderCustomers()"></div>
+        <button onclick="exportData()">Export Backup.json</button>
+        <label>Import Backup</label><input type="file" id="importFile" onchange="importData(event)">
+        <button class="danger" onclick="deleteAll()">Delete All Data</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>All Customers</h3>
+      <table id="custTable">
+        <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Plan</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: PAYMENTS -->
+  <div id="payments" class="tab-content hidden">
+    <div class="grid">
+      <div class="card">
+        <h3>Record Payment</h3>
+        <label>Select Customer</label><select id="custSelect"></select>
+        <label>Amount Paid KES</label><input id="amount" type="number" placeholder="2500">
+        <label>Payment Method</label>
+        <select id="method">
+          <option>Cash</option><option>M-PESA</option><option>Bank</option>
+        </select>
+        <button class="success" onclick="makePayment()">Record & Print Receipt</button>
+      </div>
+      <div class="card">
+        <h3>Recent Payments</h3>
+        <table id="payTable"><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div id="receiptBox" class="receipt hidden">
+      <h3 style="text-align:center">SHERIF SHABAN ISP</h3>
+      <p style="text-align:center">Tel: 07XX XXX XXX | Nairobi, Kenya</p>
+      <hr>
+      <div id="receiptContent"></div>
+      <hr>
+      <p style="text-align:center">Thank you for your business!</p>
+      <button onclick="window.print()">Print Receipt</button>
+    </div>
+  </div>
+
+  <!-- TAB 4: REPORTS -->
+  <div id="reports" class="tab-content hidden">
+    <div class="card">
+      <h3>Monthly Report</h3>
+      <button onclick="generateReport()">Generate This Month Report</button>
+      <div id="reportOutput"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: SETTINGS -->
+  <div id="settings" class="tab-content hidden">
+    <div class="card">
+      <h3>Manage Internet Plans</h3>
+      <div id="planList"></div>
+      <h4>Add New Plan</h4>
+      <input id="newPlanName" placeholder="Plan Name e.g Business">
+      <input id="newPlanSpeed" placeholder="Speed e.g 100Mbps">
+      <input id="newPlanPrice" type="number" placeholder="Price KES">
+      <button onclick="addPlan()">Add Plan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== DATA & STORAGE ======
+let PLANS = JSON.parse(localStorage.getItem("isp_plans_v3")) || {
+  "Basic": {speed: "5Mbps", price: 1500},
+  "Standard": {speed: "10Mbps", price: 2500},
+  "Premium": {speed: "20Mbps", price: 4000},
+  "Business": {speed: "50Mbps", price: 7000},
+  "Unlimited": {speed: "100Mbps", price: 12000}
+};
+let customers = JSON.parse(localStorage.getItem("isp_customers_v3")) || {};
+let payments = JSON.parse(localStorage.getItem("isp_payments_v3")) || [];
+
+function saveAll(){
+  localStorage.setItem("isp_customers_v3", JSON.stringify(customers));
+  localStorage.setItem("isp_plans_v3", JSON.stringify(PLANS));
+  localStorage.setItem("isp_payments_v3", JSON.stringify(payments));
+}
+
+// ====== UI CONTROL ======
+function showTab(tab){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tab).classList.remove('hidden');
+  event.target.classList.add('active');
+  if(tab==='customers') renderCustomers();
+  if(tab==='payments') renderPayments();
+  if(tab==='dashboard') renderDueSoon();
+  if(tab==='settings') renderPlans();
+}
+
+// ====== INIT ======
+function init(){
+  const planSel = document.getElementById("plan");
+  planSel.innerHTML="";
+  for(let p in PLANS) planSel.innerHTML += `<option value="${p}">${p} - ${PLANS[p].speed} - KES ${PLANS[p].price}/mo</option>`;
+  renderCustomers(); renderPayments(); updateStats(); renderDueSoon();
+}
+
+// ====== STATS ======
+function updateStats(){
+  let total=Object.keys(customers).length;
+  let active=Object.values(customers).filter(c=>c.status==="Active").length;
+  let suspended=total-active;
+  let thisMonth= new Date().toISOString().slice(0,7);
+  let revenue=payments.filter(p=>p.date.startsWith(thisMonth)).reduce((a,b)=>a+b.amount,0);
+  document.getElementById("statTotal").innerText=total;
+  document.getElementById("statActive").innerText=active;
+  document.getElementById("statSuspended").innerText=suspended;
+  document.getElementById("statRevenue").innerText=revenue.toLocaleString();
+}
+
+// ====== CUSTOMER CRUD ======
+function saveCustomer(){
+  const id = document.getElementById("editId").value || "SBI" + String(Object.keys(customers).length + 1).padStart(4,'0');
+  const name=document.getElementById("name").value.trim();
+  if(!name) return alert("Customer name is required");
+  const plan = document.getElementById("plan").value;
+  const dueDate = customers[id]?.dueDate || new Date(new Date().setDate(new Date().getDate()+30)).toISOString().split('T')[0];
+
+  customers[id]={
+    name,
+    phone:document.getElementById("phone").value,
+    address:document.getElementById("address").value,
+    routerId:document.getElementById("routerId").value,
+    plan,
+    balance: customers[id]?.balance || PLANS[plan].price,
+    dueDate,
+    status: customers[id]?.status || "Active",
+    payments: customers[id]?.payments || [],
+    created: customers[id]?.created || new Date().toISOString().split('T')[0]
+  };
+  saveAll(); renderCustomers(); clearForm(); updateStats(); alert("✅ Customer Saved: "+id);
+}
+
+function editCustomer(id){
+  let c=customers[id];
+  document.getElementById("editId").value=id;
+  document.getElementById("formTitle").innerText="Edit Customer";
+  document.getElementById("name").value=c.name;
+  document.getElementById("phone").value=c.phone;
+  document.getElementById("address").value=c.address;
+  document.getElementById("routerId").value=c.routerId;
+  document.getElementById("plan").value=c.plan;
+  showTab('customers');
+}
+
+function deleteCustomer(id){
+  if(confirm("Delete "+customers[id].name+"? This cannot be undone.")){
+    delete customers[id]; saveAll(); renderCustomers(); updateStats();
+  }
+}
+
+function clearForm(){
+  ["editId","name","phone","address","routerId"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("formTitle").innerText="Add Customer";
+}
+
+// ====== PAYMENTS ======
+function makePayment(){
+  const id=document.getElementById("custSelect").value;
+  const amount=parseFloat(document.getElementById("amount").value);
+  const method=document.getElementById("method").value;
+  if(!id||!amount) return alert("Select customer and enter amount");
+
+  let c=customers[id];
+  c.balance-=amount;
+  if(c.balance<=0){
+    c.status="Active";
+    let newDue=new Date(); newDue.setDate(newDue.getDate()+30);
+    c.dueDate=newDue.toISOString().split('T')[0];
+    c.balance=PLANS[c.plan].price;
+  }
+  const payment={id:Date.now(),custId:id,custName:c.name,date:new Date().toISOString().split('T')[0],amount,method};
+  payments.push(payment); c.payments.push(payment);
+  saveAll(); printReceipt(id,payment); renderCustomers(); renderPayments(); updateStats();
+  document.getElementById("amount").value="";
+}
+
+function checkDue(){
+  const today=new Date().toISOString().split('T')[0];
+  for(let id in customers) if(customers[id].dueDate<today) customers[id].status="Suspended";
+  saveAll(); renderCustomers(); updateStats(); alert("Due check complete. Suspended customers updated.");
+}
+
+function renderDueSoon(){
+  const tbody=document.querySelector("#dueTable tbody"); tbody.innerHTML="";
+  const in7days = new Date(); in7days.setDate(in7days.getDate()+7);
+  for(let id in customers){
+    let c=customers[id];
+    if(new Date(c.dueDate) <= in7days){
+      tbody.innerHTML+=`<tr><td>${c.name}</td><td>${c.dueDate}</td><td>KES ${PLANS[c.plan].price}</td></tr>`;
+    }
+  }
+}
+
+// ====== RENDERING ======
+function renderCustomers(){
+  const tbody=document.querySelector("#custTable tbody");
+  const select=document.getElementById("custSelect");
+  const search=document.getElementById("search").value.toLowerCase();
+  tbody.innerHTML=""; select.innerHTML="<option value=''>-- Select Customer --</option>";
+  for(let id in customers){
+    let c=customers[id];
+    if(!(c.name+c.phone+id).toLowerCase().includes(search)) continue;
+    let statusClass=c.status==="Active"?"status-active":"status-suspended";
+    tbody.innerHTML+=`<tr>
+      <td>${id}</td><td>${c.name}</td><td>${c.phone}</td><td>${c.plan}</td>
+      <td>KES ${c.balance.toLocaleString()}</td><td>${c.dueDate}</td>
+      <td class="${statusClass}">${c.status}</td>
+      <td class="actions">
+        <button onclick="editCustomer('${id}')">Edit</button>
+        <button class="success" onclick="document.getElementById('custSelect').value='${id}';showTab('payments')">Pay</button>
+        <button class="danger" onclick="deleteCustomer('${id}')">Del</button>
+      </td>
+    </tr>`;
+    select.innerHTML+=`<option value="${id}">${id} - ${c.name} - ${c.phone}</option>`;
+  }
+}
+
+function renderPayments(){
+  const tbody=document.querySelector("#payTable tbody"); tbody.innerHTML="";
+  payments.slice().reverse().slice(0,20).forEach(p=>{
+    tbody.innerHTML+=`<tr><td>${p.date}</td><td>${p.custName}</td><td>KES ${p.amount.toLocaleString()}</td><td>${p.method}</td></tr>`;
+  });
+}
+
+// ====== RECEIPT ======
+function printReceipt(id,payment){
+  let c=customers[id];
+  document.getElementById("receiptBox").classList.remove("hidden");
+  document.getElementById("receiptContent").innerHTML=`
+    <p><b>Receipt No:</b> ${payment.id}</p>
+    <p><b>Customer:</b> ${c.name}</p>
+    <p><b>ID:</b> ${id} | <b>Phone:</b> ${c.phone}</p>
+    <p><b>Plan:</b> ${c.plan} - ${PLANS[c.plan].speed}</p>
+    <p><b>Amount Paid:</b> KES ${payment.amount.toLocaleString()}</p>
+    <p><b>Method:</b> ${payment.method}</p>
+    <p><b>Date:</b> ${payment.date}</p>
+    <p><b>Next Due Date:</b> ${c.dueDate}</p>
+    <p><b>Account Status:</b> ${c.status}</p>
+  `;
+}
+
+// ====== REPORTS ======
+function generateReport(){
+  let thisMonth= new Date().toISOString().slice(0,7);
+  let monthPayments=payments.filter(p=>p.date.startsWith(thisMonth));
+  let total=monthPayments.reduce((a,b)=>a+b.amount,0);
+  document.getElementById("reportOutput").innerHTML=`
+    <h4>Report for ${thisMonth}</h4>
+    <p><b>Total Payments:</b> ${monthPayments.length}</p>
+    <p><b>Total Revenue:</b> KES ${total.toLocaleString()}</p>
+    <p><b>New Customers:</b> ${Object.values(customers).filter(c=>c.created.startsWith(thisMonth)).length}</p>
+  `;
+}
+
+// ====== SETTINGS ======
+function renderPlans(){
+  const div=document.getElementById("planList"); div.innerHTML="";
+  for(let p in PLANS) div.innerHTML+=`<p><b>${p}</b>: ${PLANS[p].speed} - KES ${PLANS[p].price}/month</p>`;
+}
+function addPlan(){
+  const n=document.getElementById("newPlanName").value;
+  const s=document.getElementById("newPlanSpeed").value;
+  const pr=parseFloat(document.getElementById("newPlanPrice").value);
+  if(!n||!s||!pr) return alert("Fill all fields");
+  PLANS[n]={speed:s,price:pr}; saveAll(); init(); renderPlans(); alert("Plan added");
+}
+
+// ====== BACKUP ======
+function exportData(){
+  const data={customers,plans:PLANS,payments,exportDate:new Date().toISOString()};
+  const a=document.createElement("a");
+  a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data,null,2));
+  a.download="SherifISP_Backup_"+new Date().toISOString().split('T')[0]+".json"; a.click();
+}
+function importData(e){
+  const file=e.target.files[0]; const reader=new FileReader();
+  reader.onload=ev=>{
+    const data=JSON.parse(ev.target.result);
+    customers=data.customers||{}; PLANS=data.plans||PLANS; payments=data.payments||[];
+    saveAll(); init(); alert("✅ Data Restored Successfully");
+  };
+  reader.readAsText(file);
+}
+function deleteAll(){
+  if(confirm("DELETE ALL DATA?")){localStorage.clear(); customers={}; payments={}; saveAll(); init(); alert("All data cleared");}
+}
+
+init();
+</script>
+<script src="script.js"></script>
+</body>
+</html>
